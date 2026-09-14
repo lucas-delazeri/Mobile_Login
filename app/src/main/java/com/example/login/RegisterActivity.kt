@@ -6,20 +6,25 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -77,8 +83,11 @@ class RegisterActivity : ComponentActivity() {
 
 @Composable
 fun RegisterScreen(onRegister: (String, String) -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        BackGround_img()
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF7F8FA))
+    ) {
         RegisterContent(onRegister)
     }
 }
@@ -93,111 +102,117 @@ fun RegisterContent(onRegister: (String, String) -> Unit) {
     var validPassword by remember { mutableStateOf(true) }
     var passwordsMatch by remember { mutableStateOf(true) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Bottom
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                RegisterTitle()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        Spacer(modifier = Modifier.height(40.dp))
 
-                RegisterEmailField(
-                    email = email,
-                    isValid = validEmail,
-                    onValueChange = {
-                        email = it
-                        validEmail = isValidEmail(it)
-                    }
-                )
+        Image(
+            painter = painterResource(id = R.drawable.app_img),
+            contentDescription = null,
+            modifier = Modifier
+                .size(120.dp)
+                .padding(bottom = 16.dp)
+        )
 
-                RegisterPasswordField(
-                    password = password,
-                    isValid = validPassword,
-                    onValueChange = {
-                        password = it
-                        validPassword = isValidPassword(it)
-                        passwordsMatch = confirmPassword.isEmpty() || confirmPassword == password
-                    }
-                )
+        Text(
+            text = "Create Account",
+            color = Color.Black,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Sign up to get started",
+            color = Color.Gray,
+            fontSize = 16.sp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 32.dp),
+            textAlign = TextAlign.Center
+        )
 
-                ConfirmPasswordField(
-                    confirmPassword = confirmPassword,
-                    isValid = passwordsMatch,
-                    onValueChange = {
-                        confirmPassword = it
-                        passwordsMatch = it == password
-                    }
-                )
+        RegisterEmailField(
+            email = email,
+            isValid = validEmail,
+            onValueChange = {
+                email = it
+                validEmail = isValidEmail(it)
+            }
+        )
 
-                RegisterButton {
-                    val emailOk = isValidEmail(email)
-                    val passOk = isValidPassword(password)
-                    val matchOk = password == confirmPassword
+        Spacer(modifier = Modifier.height(8.dp))
 
-                    validEmail = emailOk
-                    validPassword = passOk
-                    passwordsMatch = matchOk
+        RegisterPasswordField(
+            password = password,
+            isValid = validPassword,
+            onValueChange = {
+                password = it
+                validPassword = isValidPassword(it)
+                passwordsMatch = confirmPassword.isEmpty() || confirmPassword == password
+            }
+        )
 
-                    if (emailOk && passOk && matchOk) {
-                        onRegister(email, password)
-                    }
-                }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        ConfirmPasswordField(
+            confirmPassword = confirmPassword,
+            isValid = passwordsMatch,
+            onValueChange = {
+                confirmPassword = it
+                passwordsMatch = it == password
+            }
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        RegisterButton {
+            val emailOk = isValidEmail(email)
+            val passOk = isValidPassword(password)
+            val matchOk = password == confirmPassword
+
+            validEmail = emailOk
+            validPassword = passOk
+            passwordsMatch = matchOk
+
+            if (emailOk && passOk && matchOk) {
+                onRegister(email, password)
             }
         }
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun RegisterTitle() {
-    Text(
-        text = "Crie sua conta",
-        color = Color.White,
-        fontSize = 42.sp,
-        fontWeight = FontWeight.Bold,
-        textAlign = TextAlign.Center,
-        lineHeight = 48.sp,
-        modifier = Modifier.padding(bottom = 16.dp)
-    )
-}
-
 @Composable
 fun RegisterEmailField(email: String, isValid: Boolean, onValueChange: (String) -> Unit) {
     Column {
-        TextField(
+        OutlinedTextField(
             value = email,
             onValueChange = onValueChange,
-            label = {
-                Text(
-                    text = "exemplo:@gmail.com",
-                    fontSize = 14.sp
-                )
-            },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(10.dp),
-            colors = TextFieldDefaults.colors(
+            placeholder = { Text("Email Address", color = Color.Gray) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
-                focusedIndicatorColor = Color.Transparent,
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Gray
+                focusedBorderColor = Color(0xFF673AB7),
+                unfocusedBorderColor = Color.LightGray,
+                errorBorderColor = Color.Red
             ),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             isError = !isValid,
+            singleLine = true
         )
         if (!isValid) {
             Text(
-                text = "Email inválido. Por favor, digite um email válido",
+                text = "Please enter a valid email",
                 color = Color.Red,
                 fontSize = 12.sp,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                modifier = Modifier.padding(start = 8.dp, top = 4.dp)
             )
         }
     }
@@ -206,34 +221,30 @@ fun RegisterEmailField(email: String, isValid: Boolean, onValueChange: (String) 
 @Composable
 fun RegisterPasswordField(password: String, isValid: Boolean, onValueChange: (String) -> Unit) {
     Column {
-        TextField(
+        OutlinedTextField(
             value = password,
             onValueChange = onValueChange,
-            label = {
-                Text(
-                    text = "Digite sua senha",
-                    fontSize = 14.sp
-                )
-            },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(10.dp),
-            colors = TextFieldDefaults.colors(
+            placeholder = { Text("Password", color = Color.Gray) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
-                focusedIndicatorColor = Color.Transparent,
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Gray
+                focusedBorderColor = Color(0xFF673AB7),
+                unfocusedBorderColor = Color.LightGray,
+                errorBorderColor = Color.Red
             ),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             visualTransformation = PasswordVisualTransformation(),
             isError = !isValid,
+            singleLine = true
         )
         if (!isValid) {
             Text(
-                text = "Senha inválida. A senha deve conter no mínimo 8 caracteres, uma letra maiúscula e um número",
+                text = "Password must be 8+ chars with a capital and a number",
                 color = Color.Red,
                 fontSize = 12.sp,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                modifier = Modifier.padding(start = 8.dp, top = 4.dp)
             )
         }
     }
@@ -242,34 +253,30 @@ fun RegisterPasswordField(password: String, isValid: Boolean, onValueChange: (St
 @Composable
 fun ConfirmPasswordField(confirmPassword: String, isValid: Boolean, onValueChange: (String) -> Unit) {
     Column {
-        TextField(
+        OutlinedTextField(
             value = confirmPassword,
             onValueChange = onValueChange,
-            label = {
-                Text(
-                    text = "Confirme sua senha",
-                    fontSize = 14.sp
-                )
-            },
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(10.dp),
-            colors = TextFieldDefaults.colors(
+            placeholder = { Text("Confirm Password", color = Color.Gray) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
-                focusedIndicatorColor = Color.Transparent,
-                focusedTextColor = Color.Black,
-                unfocusedTextColor = Color.Gray
+                focusedBorderColor = Color(0xFF673AB7),
+                unfocusedBorderColor = Color.LightGray,
+                errorBorderColor = Color.Red
             ),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             visualTransformation = PasswordVisualTransformation(),
             isError = !isValid,
+            singleLine = true
         )
         if (!isValid) {
             Text(
-                text = "As senhas não coincidem",
+                text = "Passwords do not match",
                 color = Color.Red,
                 fontSize = 12.sp,
-                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                modifier = Modifier.padding(start = 8.dp, top = 4.dp)
             )
         }
     }
@@ -279,14 +286,16 @@ fun ConfirmPasswordField(confirmPassword: String, isValid: Boolean, onValueChang
 fun RegisterButton(onClicked: () -> Unit) {
     Button(
         onClick = onClicked,
-        modifier = Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 16.dp, vertical = 2.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFA951A)),
-        shape = RoundedCornerShape(10.dp)
+        modifier = Modifier
+            .width(150.dp)
+            .height(50.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F93FF)),
+        shape = RoundedCornerShape(50)
     ) {
         Text(
-            text = "Cadastrar",
+            text = "Sign Up",
             color = Color.White,
-            fontSize = 22.sp,
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
     }
