@@ -6,8 +6,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,11 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -45,7 +39,7 @@ import com.example.login.ui.theme.LoginTheme
 import com.google.firebase.auth.FirebaseAuth
 import java.util.regex.Pattern
 
-class MainActivity : ComponentActivity() {
+class RegisterActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
 
@@ -58,22 +52,16 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             LoginTheme {
-                LoginScreen(
-                    onLogin = { email, password ->
-                        login(email, password)
-                    },
-                    onRegisterClick = {
-                        val intent = Intent(this, RegisterActivity::class.java)
-                        startActivity(intent)
-                    }
-                )
+                RegisterScreen { email, password ->
+                    registerUser(email, password)
+                }
             }
         }
     }
 
-    private fun login(email: String, password: String) {
+    private fun registerUser(email: String, password: String) {
 
-        auth.signInWithEmailAndPassword(email, password)
+        auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
 
@@ -81,40 +69,32 @@ class MainActivity : ComponentActivity() {
                     startActivity(intent)
                     finish()
                 } else {
-                    Toast.makeText(this, "Falha no login: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Falha na criação de usuário: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                 }
             }
     }
 }
 
 @Composable
-fun LoginScreen(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit) {
-    Box(modifier = Modifier .fillMaxSize()) {
-            BackGround_img()
-            LoginContent(onLogin, onRegisterClick)
+fun RegisterScreen(onRegister: (String, String) -> Unit) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        BackGround_img()
+        RegisterContent(onRegister)
     }
 }
 
 @Composable
-fun BackGround_img () {
-    Image(painter = painterResource(id = R.drawable.bg_img),
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = Modifier.fillMaxSize(),
-        colorFilter = ColorFilter.tint(Color.Black.copy(alpha = 0.5f), BlendMode.Darken)
-    )
-}
-
-@Composable
-fun LoginContent(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit) {
+fun RegisterContent(onRegister: (String, String) -> Unit) {
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var validEmail by remember { mutableStateOf(true) }
     var validPassword by remember { mutableStateOf(true) }
+    var passwordsMatch by remember { mutableStateOf(true) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column (
+        Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Bottom
@@ -126,15 +106,49 @@ fun LoginContent(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit)
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Title()
-                EmailField(email) { email = it; validEmail = validEmail(it)}
-                PasswordField(password) { password = it; validPassword = validPass(it) }
-                LoginButton {
-                    if (validEmail && validPassword) {
-                        onLogin(email, password)
+                RegisterTitle()
+
+                RegisterEmailField(
+                    email = email,
+                    isValid = validEmail,
+                    onValueChange = {
+                        email = it
+                        validEmail = isValidEmail(it)
+                    }
+                )
+
+                RegisterPasswordField(
+                    password = password,
+                    isValid = validPassword,
+                    onValueChange = {
+                        password = it
+                        validPassword = isValidPassword(it)
+                        passwordsMatch = confirmPassword.isEmpty() || confirmPassword == password
+                    }
+                )
+
+                ConfirmPasswordField(
+                    confirmPassword = confirmPassword,
+                    isValid = passwordsMatch,
+                    onValueChange = {
+                        confirmPassword = it
+                        passwordsMatch = it == password
+                    }
+                )
+
+                RegisterButton {
+                    val emailOk = isValidEmail(email)
+                    val passOk = isValidPassword(password)
+                    val matchOk = password == confirmPassword
+
+                    validEmail = emailOk
+                    validPassword = passOk
+                    passwordsMatch = matchOk
+
+                    if (emailOk && passOk && matchOk) {
+                        onRegister(email, password)
                     }
                 }
-                RegisterAncor(onRegisterClick)
             }
         }
     }
@@ -142,9 +156,9 @@ fun LoginContent(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit)
 
 @Preview(showBackground = true)
 @Composable
-fun Title() {
+fun RegisterTitle() {
     Text(
-        text = "Faça seu Login",
+        text = "Crie sua conta",
         color = Color.White,
         fontSize = 42.sp,
         fontWeight = FontWeight.Bold,
@@ -155,17 +169,11 @@ fun Title() {
 }
 
 @Composable
-fun EmailField (email: String, onValueChange: (String) -> Unit) {
-
-    var validEmail by remember { mutableStateOf(true) }
-
+fun RegisterEmailField(email: String, isValid: Boolean, onValueChange: (String) -> Unit) {
     Column {
         TextField(
             value = email,
-            onValueChange = {
-                onValueChange(it)
-                validEmail = validEmail(it)
-            },
+            onValueChange = onValueChange,
             label = {
                 Text(
                     text = "exemplo:@gmail.com",
@@ -182,9 +190,9 @@ fun EmailField (email: String, onValueChange: (String) -> Unit) {
                 unfocusedTextColor = Color.Gray
             ),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            isError = !validEmail,
+            isError = !isValid,
         )
-        if (!validEmail) {
+        if (!isValid) {
             Text(
                 text = "Email inválido. Por favor, digite um email válido",
                 color = Color.Red,
@@ -193,21 +201,14 @@ fun EmailField (email: String, onValueChange: (String) -> Unit) {
             )
         }
     }
-
 }
 
 @Composable
-fun PasswordField(password: String, onValueChange: (String) -> Unit) {
-
-    var validPass by remember { mutableStateOf(true) }
-
+fun RegisterPasswordField(password: String, isValid: Boolean, onValueChange: (String) -> Unit) {
     Column {
         TextField(
             value = password,
-            onValueChange = {
-                onValueChange(it)
-                validPass = validPass(it)
-            },
+            onValueChange = onValueChange,
             label = {
                 Text(
                     text = "Digite sua senha",
@@ -223,11 +224,11 @@ fun PasswordField(password: String, onValueChange: (String) -> Unit) {
                 focusedTextColor = Color.Black,
                 unfocusedTextColor = Color.Gray
             ),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             visualTransformation = PasswordVisualTransformation(),
-            isError = !validPass,
+            isError = !isValid,
         )
-        if (!validPass) {
+        if (!isValid) {
             Text(
                 text = "Senha inválida. A senha deve conter no mínimo 8 caracteres, uma letra maiúscula e um número",
                 color = Color.Red,
@@ -239,49 +240,76 @@ fun PasswordField(password: String, onValueChange: (String) -> Unit) {
 }
 
 @Composable
-fun RegisterAncor(onClick: () -> Unit) {
-    Text(
-        text = "Não possui conta? Registre-se",
-        color = Color.White,
-        fontSize = 14.sp,
-        modifier = Modifier.clickable { onClick() }
-    )
+fun ConfirmPasswordField(confirmPassword: String, isValid: Boolean, onValueChange: (String) -> Unit) {
+    Column {
+        TextField(
+            value = confirmPassword,
+            onValueChange = onValueChange,
+            label = {
+                Text(
+                    text = "Confirme sua senha",
+                    fontSize = 14.sp
+                )
+            },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(10.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White,
+                focusedIndicatorColor = Color.Transparent,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Gray
+            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            visualTransformation = PasswordVisualTransformation(),
+            isError = !isValid,
+        )
+        if (!isValid) {
+            Text(
+                text = "As senhas não coincidem",
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+    }
 }
 
 @Composable
-fun LoginButton(onCliked: () -> Unit) {
+fun RegisterButton(onClicked: () -> Unit) {
     Button(
-        onClick = onCliked,
+        onClick = onClicked,
         modifier = Modifier.fillMaxWidth().height(60.dp).padding(horizontal = 16.dp, vertical = 2.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFA951A)),
         shape = RoundedCornerShape(10.dp)
     ) {
         Text(
-            text = "Entrar",
+            text = "Cadastrar",
             color = Color.White,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold
         )
     }
 }
-fun validEmail(email: String): Boolean {
+
+fun isValidEmail(email: String): Boolean {
     val emailTemplate = "^[A-Za-z](.*)([@]{1})(.{1,})(\\.)(.{1,})"
     val template = Pattern.compile(emailTemplate)
     val matcher = template.matcher(email)
     return matcher.matches()
 }
 
-fun validPass(password: String): Boolean {
-    val emailTemplate = "^(?=.*[A-Z])(?=.*\\d).{8,}\$"
-    val template = Pattern.compile(emailTemplate)
+fun isValidPassword(password: String): Boolean {
+    val passwordTemplate = "^(?=.*[A-Z])(?=.*\\d).{8,}\$"
+    val template = Pattern.compile(passwordTemplate)
     val matcher = template.matcher(password)
     return matcher.matches()
 }
 
 @Preview(showBackground = true)
 @Composable
-fun LoginScreenPreview() {
+fun RegisterScreenPreview() {
     LoginTheme {
-        LoginScreen(onLogin = {_, _ ->}, onRegisterClick = {})
+        RegisterScreen { _, _ -> }
     }
 }
