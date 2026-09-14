@@ -1,11 +1,14 @@
 package com.example.login
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Button
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -48,12 +51,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.login.ui.theme.LoginTheme
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import java.util.regex.Pattern
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
+    private lateinit var googleSignInClient: GoogleSignInClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,6 +72,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         auth = FirebaseAuth.getInstance()
+
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken("601805785930-hit301n8gmj99busndcvs48v9oncq6u7.apps.googleusercontent.com")
+            .requestEmail()
+            .build()
+
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
 
         setContent {
             LoginTheme {
@@ -71,6 +89,9 @@ class MainActivity : ComponentActivity() {
                     onRegisterClick = {
                         val intent = Intent(this, RegisterActivity::class.java)
                         startActivity(intent)
+                    },
+                    onGoogleSignIn = {
+                        signInGoogle()
                     }
                 )
             }
@@ -91,21 +112,66 @@ class MainActivity : ComponentActivity() {
                 }
             }
     }
+
+    private fun signInGoogle() {
+        googleSignInClient.signOut().addOnCompleteListener {
+            val signInIntent = googleSignInClient.signInIntent
+            launcher.launch(signInIntent)
+        }
+    }
+
+    private val launcher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        result ->
+                if (result.resultCode == Activity.RESULT_OK) {
+                    val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                    handleResults(task)
+                }
+    }
+
+    private fun handleResults(task: Task<GoogleSignInAccount>) {
+        try {
+            val account: GoogleSignInAccount? = task.getResult(ApiException::class.java)
+            if (account != null) {
+                if (account.idToken != null) {
+                    updateUI(account)
+                } else {
+                    Toast.makeText(this, "Erro: ID Token nulo. Verifique o SHA-1 e o Web Client ID no Firebase.", Toast.LENGTH_LONG).show()
+                }
+            }
+        } catch (e: ApiException) {
+            Toast.makeText(this, "Falha no Google Sign-In: code ${e.statusCode}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateUI(account: GoogleSignInAccount) {
+        val credenctial = GoogleAuthProvider.getCredential(account.idToken, null)
+        auth.signInWithCredential(credenctial).addOnCompleteListener {
+            if (it.isSuccessful) {
+                val intent: Intent = Intent(this, HomeActivity::class.java)
+                intent.putExtra("email", account.email)
+                intent.putExtra("name", account.displayName)
+                startActivity(intent)
+                finish()
+            } else {
+                Toast.makeText(this, "Firebase Auth falhou: ${it.exception?.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 }
 
 @Composable
-fun LoginScreen(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit) {
+fun LoginScreen(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit, onGoogleSignIn: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF7F8FA))
     ) {
-        LoginContent(onLogin, onRegisterClick)
+        LoginContent(onLogin, onRegisterClick, onGoogleSignIn)
     }
 }
 
 @Composable
-fun LoginContent(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit) {
+fun LoginContent(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit, onGoogleSignIn: () -> Unit) {
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -199,7 +265,7 @@ fun LoginContent(onLogin: (String, String) -> Unit, onRegisterClick: () -> Unit)
         Surface(
             modifier = Modifier
                 .size(48.dp)
-                .clickable { },
+                .clickable { onGoogleSignIn() },
             shape = CircleShape,
             color = Color.White,
             border = BorderStroke(1.dp, Color.LightGray)
@@ -354,6 +420,6 @@ fun validPass(password: String): Boolean {
 @Composable
 fun LoginScreenPreview() {
     LoginTheme {
-        LoginScreen(onLogin = {_, _ ->}, onRegisterClick = {})
+        LoginScreen(onLogin = {_, _ ->}, onRegisterClick = {}, onGoogleSignIn = {})
     }
 }
