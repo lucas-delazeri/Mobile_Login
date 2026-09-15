@@ -403,7 +403,7 @@ fun LoginButton(onClicked: () -> Unit) {
     }
 }
 fun validEmail(email: String): Boolean {
-    val emailTemplate = "^[A-Za-z](.*)([@]{1})(.{1,})(\\.)(.{1,})"
+    val emailTemplate = "^[a-zA-Z0-9.!#\$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*\$"
     val template = Pattern.compile(emailTemplate)
     val matcher = template.matcher(email)
     return matcher.matches()
